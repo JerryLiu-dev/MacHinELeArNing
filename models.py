@@ -50,10 +50,8 @@ class PerceptronModel(object):
         while err:
             errors = 0
             for x,y in dataset.iterate_once(1):
-        
                 if self.get_prediction(x) != nn.as_scalar(y):
                     errors +=1
-                    dat = np.array([nn.as_scalar(y) for t in range(2)],ndmin=2)
                     self.w.update(x,nn.as_scalar(y))
             if errors == 0:
                 err = False
@@ -68,6 +66,11 @@ class RegressionModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.batch_size = 200
+        self.layer1 = nn.Parameter(1,512)
+        self.layer2 = nn.Parameter(512,1)
+        self.bias1 = nn.Parameter(1,512)
+        self.bias2 = nn.Parameter(1,1)
 
     def run(self, x):
         """
@@ -79,6 +82,13 @@ class RegressionModel(object):
             A node with shape (batch_size x 1) containing predicted y-values
         """
         "*** YOUR CODE HERE ***"
+        hidden = nn.Linear(x,self.layer1)
+        hidden = nn.AddBias(hidden,self.bias1)
+        hidden = nn.ReLU(hidden)
+        output = nn.Linear(hidden,self.layer2)
+        output == nn.AddBias(output,self.bias2)
+    
+        return output
 
     def get_loss(self, x, y):
         """
@@ -91,12 +101,29 @@ class RegressionModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        
+        loss = nn.SquareLoss(self.run(x),y)
+        return loss
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        lRate = 0.05
+        loss = float('inf')
+        while loss > .1:
+            for x,y in dataset.iterate_once(self.batch_size):
+                temp_loss = self.get_loss(x,y)
+                grad_wrt_l1, grad_wrt_l2, grad_wrt_b1,grad_wrt_b2 = nn.gradients(temp_loss, [self.layer1,self.layer2,self.bias1,self.bias2])
+               
+                self.layer1.update(grad_wrt_l1,lRate)
+                self.layer2.update(grad_wrt_l2,lRate)
+                self.bias1.update(grad_wrt_b1,lRate)
+                self.bias2.update(grad_wrt_b2,lRate)
+                loss = min(loss,nn.as_scalar(temp_loss))
+                lRate *= 4
+
 
 class DigitClassificationModel(object):
     """

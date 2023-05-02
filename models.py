@@ -110,9 +110,10 @@ class RegressionModel(object):
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
-        lRate = 0.05
-        loss = float('inf')
-        while loss > .1:
+        lRate = -0.05
+        loss = 0
+        count = 0
+        while True:
             for x,y in dataset.iterate_once(self.batch_size):
                 temp_loss = self.get_loss(x,y)
                 grad_wrt_l1, grad_wrt_l2, grad_wrt_b1,grad_wrt_b2 = nn.gradients(temp_loss, [self.layer1,self.layer2,self.bias1,self.bias2])
@@ -121,8 +122,11 @@ class RegressionModel(object):
                 self.layer2.update(grad_wrt_l2,lRate)
                 self.bias1.update(grad_wrt_b1,lRate)
                 self.bias2.update(grad_wrt_b2,lRate)
-                loss = min(loss,nn.as_scalar(temp_loss))
-                lRate *= 4
+            loss += nn.as_scalar(temp_loss)
+            count += 1
+                
+            if float(loss / count) < 0.02:
+                return
 
 
 class DigitClassificationModel(object):

@@ -146,6 +146,11 @@ class DigitClassificationModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.batch_size = 100
+        self.layer1 = nn.Parameter(784,200)
+        self.layer2 = nn.Parameter(200,10)
+        self.bias1 = nn.Parameter(1,200)
+        self.bias2 = nn.Parameter(1,10)
 
     def run(self, x):
         """
@@ -162,7 +167,12 @@ class DigitClassificationModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
-
+        hidden = nn.Linear(x,self.layer1)
+        hidden = nn.AddBias(hidden,self.bias1)
+        hidden = nn.ReLU(hidden)
+        output = nn.Linear(hidden,self.layer2)
+        output = nn.AddBias(output, self.bias2)
+        return output
     def get_loss(self, x, y):
         """
         Computes the loss for a batch of examples.
@@ -177,13 +187,28 @@ class DigitClassificationModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        logits = self.run(x)
+        return nn.SoftmaxLoss(logits, y)
+        
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
-
+        lRate = -0.5
+        while True:
+            for x,y in dataset.iterate_once(self.batch_size):
+                temp_loss = self.get_loss(x,y)
+                grad_wrt_l1, grad_wrt_l2, grad_wrt_b1,grad_wrt_b2 = nn.gradients(temp_loss, [self.layer1,self.layer2,self.bias1,self.bias2])
+               
+                self.layer1.update(grad_wrt_l1,lRate)
+                self.layer2.update(grad_wrt_l2,lRate)
+                self.bias1.update(grad_wrt_b1,lRate)
+                self.bias2.update(grad_wrt_b2,lRate)
+                
+            if dataset.get_validation_accuracy() > .97:
+                return
 class LanguageIDModel(object):
     """
     A model for language identification at a single-word granularity.

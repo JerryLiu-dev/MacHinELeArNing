@@ -147,6 +147,13 @@ class DigitClassificationModel(object):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
 
+        self.batch_size = 100
+        self.layer1 = nn.Parameter(10,200)
+        self.layer2 = nn.Parameter(200,10)
+        self.bias1 = nn.Parameter(10,200)
+        self.bias2 = nn.Parameter(10,10)
+
+
     def run(self, x):
         """
         Runs the model for a batch of examples.
@@ -163,6 +170,13 @@ class DigitClassificationModel(object):
         """
         "*** YOUR CODE HERE ***"
 
+        hidden = nn.Linear(x,self.layer1)
+        hidden = nn.AddBias(hidden,self.bias1)
+        # hidden = nn.ReLU(hidden)
+        output = nn.Linear(hidden,self.layer2)
+        output == nn.AddBias(output,self.bias2)
+
+
     def get_loss(self, x, y):
         """
         Computes the loss for a batch of examples.
@@ -177,6 +191,8 @@ class DigitClassificationModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
+        loss = nn.SoftmaxLoss(self.run(x), y)
+        return loss
 
     def train(self, dataset):
         """

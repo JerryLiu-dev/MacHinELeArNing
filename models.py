@@ -232,7 +232,7 @@ class LanguageIDModel(object):
         self.w_x = nn.Parameter(self.num_chars, 512) # input x initial weights
         self.w_h = nn.Parameter(512, 512) # hidden weights
         self.w_output = nn.Parameter(512, 5) # hidden x 5 for the 5 languages
-        # self.bias_x = nn.Parameter(1, 512)
+        self.bias_x = nn.Parameter(1, 512)
         # self.bias_h = nn.Parameter(1, 512)
         # self.bias_o = nn.Parameter(1, 5)
 
@@ -269,12 +269,13 @@ class LanguageIDModel(object):
         h = nn.Linear(xs[0], self.w_x)
         for _, x in enumerate(xs[1:]):
             x_Wx = nn.Linear(x, self.w_x)
-            # x_Wx = nn.AddBias(x_Wx, self.bias_x)
+            x_Wx = nn.AddBias(x_Wx, self.bias_x)
             # x_Wx = nn.ReLU(x_Wx)
             h_Wh = nn.Linear(h, self.w_h)
             # h_Wh = nn.AddBias(h_Wh, self.bias_h)
 
             h = nn.Add(x_Wx, h_Wh)
+            h = nn.ReLU(h)
 
         output = nn.Linear(h, self.w_output)
         # output = nn.AddBias(output, self.bias_o)
@@ -303,16 +304,16 @@ class LanguageIDModel(object):
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
-        lRate = -0.05
+        lRate = -0.1
         while True:
             for x,y in dataset.iterate_once(self.batch_size):
                 temp_loss = self.get_loss(x,y)
-                grad_wrt_wx, grad_wrt_wh, grad_wrt_wo = nn.gradients(temp_loss, [self.w_x, self.w_h, self.w_output])
+                grad_wrt_wx, grad_wrt_wh, grad_wrt_wo, grad_wrt_bias_x = nn.gradients(temp_loss, [self.w_x, self.w_h, self.w_output,self.bias_x])
                
                 self.w_x.update(grad_wrt_wx,lRate)
                 self.w_h.update(grad_wrt_wh,lRate)
                 self.w_output.update(grad_wrt_wo,lRate)
-                # self.bias_x.update(grad_wrt_bias_x,lRate)
+                self.bias_x.update(grad_wrt_bias_x,lRate)
                 # self.bias_h.update(grad_wrt_bias_h,lRate)
                 # self.bias_o.update(grad_wrt_bias_o,lRate)
                 

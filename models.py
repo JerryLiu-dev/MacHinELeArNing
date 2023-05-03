@@ -146,13 +146,11 @@ class DigitClassificationModel(object):
     def __init__(self):
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
-
         self.batch_size = 100
-        self.layer1 = nn.Parameter(10,200)
+        self.layer1 = nn.Parameter(784,200)
         self.layer2 = nn.Parameter(200,10)
-        self.bias1 = nn.Parameter(10,200)
-        self.bias2 = nn.Parameter(10,10)
-
+        self.bias1 = nn.Parameter(1,200)
+        self.bias2 = nn.Parameter(1,10)
 
     def run(self, x):
         """
@@ -169,14 +167,13 @@ class DigitClassificationModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
-
         hidden = nn.Linear(x,self.layer1)
         hidden = nn.AddBias(hidden,self.bias1)
-        # hidden = nn.ReLU(hidden)
+        hidden = nn.ReLU(hidden)
         output = nn.Linear(hidden,self.layer2)
-        output == nn.AddBias(output,self.bias2)
-
-
+        output = nn.AddBias(output, self.bias2)
+        return output
+    
     def get_loss(self, x, y):
         """
         Computes the loss for a batch of examples.
@@ -191,15 +188,28 @@ class DigitClassificationModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
-        loss = nn.SoftmaxLoss(self.run(x), y)
-        return loss
+
+        logits = self.run(x)
+        return nn.SoftmaxLoss(logits, y)
 
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
-
+        lRate = -0.5
+        while True:
+            for x,y in dataset.iterate_once(self.batch_size):
+                temp_loss = self.get_loss(x,y)
+                grad_wrt_l1, grad_wrt_l2, grad_wrt_b1,grad_wrt_b2 = nn.gradients(temp_loss, [self.layer1,self.layer2,self.bias1,self.bias2])
+               
+                self.layer1.update(grad_wrt_l1,lRate)
+                self.layer2.update(grad_wrt_l2,lRate)
+                self.bias1.update(grad_wrt_b1,lRate)
+                self.bias2.update(grad_wrt_b2,lRate)
+                
+            if dataset.get_validation_accuracy() > .97:
+                return
 class LanguageIDModel(object):
     """
     A model for language identification at a single-word granularity.
@@ -218,6 +228,13 @@ class LanguageIDModel(object):
 
         # Initialize your model parameters here
         "*** YOUR CODE HERE ***"
+        self.batch_size = 75
+        self.w_x = nn.Parameter(self.num_chars, 512) # input x initial weights
+        self.w_h = nn.Parameter(512, 512) # hidden weights
+        self.w_output = nn.Parameter(512, 5) # hidden x 5 for the 5 languages
+        # self.bias_x = nn.Parameter(1, 512)
+        # self.bias_h = nn.Parameter(1, 512)
+        # self.bias_o = nn.Parameter(1, 5)
 
     def run(self, xs):
         """
@@ -249,6 +266,19 @@ class LanguageIDModel(object):
                 (also called logits)
         """
         "*** YOUR CODE HERE ***"
+        h = nn.Linear(xs[0], self.w_x)
+        for _, x in enumerate(xs[1:]):
+            x_Wx = nn.Linear(x, self.w_x)
+            # x_Wx = nn.AddBias(x_Wx, self.bias_x)
+            # x_Wx = nn.ReLU(x_Wx)
+            h_Wh = nn.Linear(h, self.w_h)
+            # h_Wh = nn.AddBias(h_Wh, self.bias_h)
+
+            h = nn.Add(x_Wx, h_Wh)
+
+        output = nn.Linear(h, self.w_output)
+        # output = nn.AddBias(output, self.bias_o)
+        return output
 
     def get_loss(self, xs, y):
         """
@@ -265,9 +295,26 @@ class LanguageIDModel(object):
         Returns: a loss node
         """
         "*** YOUR CODE HERE ***"
-
+        logits = self.run(xs)
+        return nn.SoftmaxLoss(logits, y)
+    
     def train(self, dataset):
         """
         Trains the model.
         """
         "*** YOUR CODE HERE ***"
+        lRate = -0.05
+        while True:
+            for x,y in dataset.iterate_once(self.batch_size):
+                temp_loss = self.get_loss(x,y)
+                grad_wrt_wx, grad_wrt_wh, grad_wrt_wo = nn.gradients(temp_loss, [self.w_x, self.w_h, self.w_output])
+               
+                self.w_x.update(grad_wrt_wx,lRate)
+                self.w_h.update(grad_wrt_wh,lRate)
+                self.w_output.update(grad_wrt_wo,lRate)
+                # self.bias_x.update(grad_wrt_bias_x,lRate)
+                # self.bias_h.update(grad_wrt_bias_h,lRate)
+                # self.bias_o.update(grad_wrt_bias_o,lRate)
+                
+            if dataset.get_validation_accuracy() > .89:
+                return
